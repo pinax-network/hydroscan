@@ -8,7 +8,6 @@ import { ChainProvider, useChain } from "@/contexts/ChainContext";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 
 const cx = (...classes: string[]) => classes.filter(Boolean).join(" ");
-
 const POLL_INTERVAL = 10;
 
 function AquariumContent() {
@@ -19,6 +18,35 @@ function AquariumContent() {
     const [transfers, setTransfers] = useState<Transfer[]>([]);
     const [lastBlock, setLastBlock] = useState<number | null>(null);
     const [supply, setSupply] = useState<number | null>(null);
+
+
+
+
+    const fetchTransfers = useCallback(async () => {
+
+
+        // setTransfers(prev => [...prev, ...incoming]);
+        // setLastBlock(result.lastBlock);
+    }, [selectedChain, contract, lastBlock]);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     const fetchSupply = useCallback(async () => {
         const result = await fetch('/api/supply/', {
@@ -33,20 +61,6 @@ function AquariumContent() {
         }
 
         setSupply(result!.supply);
-    }, [selectedChain, contract, lastBlock]);
-
-    const fetchTransfers = useCallback(async () => {
-        const result = await fetch('/api/transfers/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ selectedChain, contract, lastBlock })
-        }).then(res => res.json()).catch(() => null);
-        if (!result || !result.transfers) return;
-
-        const incoming = result.transfers as Transfer[];
-        
-        setTransfers(prev => [...prev, ...incoming]);
-        setLastBlock(result.lastBlock);
     }, [selectedChain, contract, lastBlock]);
 
     const fetchTransfersRef = useRef(fetchTransfers);
@@ -78,7 +92,7 @@ function AquariumContent() {
         };
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
-        
+
         // Initial fetch and start polling
         setTimeout(() => {
             fetchSupplyRef.current();
@@ -107,21 +121,13 @@ function AquariumContent() {
 
     return (
         <div className={cx("min-h-screen", theme.bg, theme.textPrimary)}>
-            {/* Glow BG */}
             <div className="absolute inset-0 flex justify-center pointer-events-none">
                 <div className="w-200 h-100 bg-blue-500/4 blur-3xl rounded-full"></div>
             </div>
-
-            {/* Top Action Bar */}
             <Menu onChangeDetails={changeDetails} />
-
-            {/* Aquarium Component */}
             <Aquarium transfers={transfers} supply={supply} resetKey={resetKey} />
-
-            {/* PINAX LOGO OVERLAY */}
             <div className="fixed bottom-10 right-10 z-50 hover:opacity-100 transition">
                 <a href="https://pinax.network" target="_blank" aria-label="Pinax.io" className="flex justify-end items-end flex-col">
-
                     <svg width="30" viewBox="0 0 75 97" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M60.4485 69.0969L46.469 81.4903V84.5524L60.4485 96.9458L74.4279 84.5524V81.4903L60.4485 69.0969ZM69.2794 83.987L60.4485 91.8123L51.6175 83.987V82.0507L60.4485 74.2254L69.2794 82.0507V83.987Z" fill="#FFFFFE"/>
                         <path d="M60.4485 46.3765L46.469 58.7699V61.8319L60.4485 74.2253L74.4279 61.8319V58.7699L60.4485 46.3765ZM69.2794 61.2666L60.4485 69.0919L51.6175 61.2666V59.3302L60.4485 51.5049L69.2794 59.3302V61.2666Z" fill="#FFFFFE"/>
@@ -136,7 +142,6 @@ function AquariumContent() {
 
                 </a>
             </div>
-
         </div>
     );
 }
