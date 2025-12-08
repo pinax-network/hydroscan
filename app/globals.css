@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+
+@keyframes swim {
+  0%   { transform: translateX(-150px); }
+  100% { transform: translateX(120vw); }
+}
+
+@keyframes swim-reverse {
+  0%   { transform: translateX(0); }         /* start right edge */
+  100% { transform: translateX(-120vw); }    /* swim fully left */
+}
+
+/*
+ * Sprite sheet animation - steps through frames horizontally.
+ * The -400% value moves through 4 frames (100% per frame).
+ * Used with steps(4) timing function in Fish.tsx for discrete frame transitions.
+ */
+@keyframes sprite-animate {
+  from { background-position: 0 0; }
+  to { background-position: 400% 0; }
+}
+
+.black-glass {
+  background: rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(10px);
+}
+
+.white-glass {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
