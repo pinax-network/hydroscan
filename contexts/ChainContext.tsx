@@ -35,8 +35,8 @@ const ChainContext = createContext<ChainContextType | undefined>(undefined);
 
 export function ChainProvider({ children }: { children: ReactNode }) {
     const chains = { ...EVMChains, ...SVMChains, ...TVMChains };
-    const [selectedChain, setSelectedChain] = useState<string>(EVMChains.Ethereum);
-    const [contract, setContract] = useState(tokens[EVMChains.Ethereum][0].contract);
+    const [selectedChain, setSelectedChain] = useState<string>(SVMChains.Solana);
+    const [contract, setContract] = useState(tokens[SVMChains.Solana][0].contract);
 
     return (
         <ChainContext.Provider

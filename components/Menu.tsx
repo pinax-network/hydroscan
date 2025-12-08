@@ -19,9 +19,7 @@ export default function Menu({ onChangeDetails }: MenuProps) {
     const tokenList = tokens[selectedChain] || [];
 
     // can only show contract input on non-solana chains
-    const isSolana = useMemo(() => {
-        return selectedChain === SVMChains.Solana;
-    }, [selectedChain]);
+    const isSolana = true;
 
     return (
         <div className="w-full flex justify-center pt-4 px-4 relative z-50">
@@ -50,7 +48,7 @@ export default function Menu({ onChangeDetails }: MenuProps) {
                 <section className="flex gap-3 flex-1">
                     {/* Blockchain Select */}
                     <div className="flex flex-col flex-1">
-                        <select
+                        <select disabled
                             className={cx(
                                 "text-sm px-3 py-2 rounded focus:outline-none border capitalize",
                                 theme.input
@@ -92,28 +90,12 @@ export default function Menu({ onChangeDetails }: MenuProps) {
                         </select>
                     </div>
 
-                    {/* Contract Input */}
-                    {!isSolana &&
-                        <div className="flex flex-col w-full">
-                            <input
-                                type="text"
-                                value={contract}
-                                onChange={(e) => setContract(e.target.value)}
-                                placeholder="Enter contract address"
-                                className={cx(
-                                    "text-sm px-3 py-2 rounded focus:outline-none border",
-                                    theme.input
-                                )}
-                            />
-                        </div>
-                    }
-
                     {/* Button to Go! */}
                     <div className="flex flex-col justify-end flex-shrink-0">
                         <button
                             onClick={onChangeDetails}
                             className={cx(
-                                "px-5 h-[39px] rounded font-medium text-sm transition cursor-pointer",
+                                "px-5 h-[36px] rounded font-medium text-sm transition cursor-pointer",
                                 isDarkMode
                                     ? "bg-blue-600 hover:bg-blue-700 text-white"
                                     : "bg-blue-500 hover:bg-blue-600 text-white"
