@@ -2,6 +2,11 @@
 
 This is a demo project that showcases how to use [Pinax's TokenAPI](https://pinax.network/en/products/api) to fetch transfers and display them as fish in an aquarium.
 
+## Came here from a video tutorial?
+
+Don't forget you might need to switch branches! 
+- For Solana `git checkout solana` 
+
 ## Running the project locally
 
 ```bash
