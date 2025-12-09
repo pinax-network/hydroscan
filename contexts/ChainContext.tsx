@@ -42,6 +42,10 @@ const tokens: Record<string, { symbol: string; contract: string }[]> = {
         { symbol: "USDT", contract: "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58" },
         { symbol: "USDC", contract: "0x0b2c639c533813f4aa9d7837caf62653d097ff85" },
     ],
+    [EVMChains.BSC]: [
+        { symbol: "BSC-USD", contract: "0x55d398326f99059ff775485246999027b3197955" },
+        { symbol: "USDC", contract: "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d" },
+    ],
 };
 
 interface ChainContextType {
