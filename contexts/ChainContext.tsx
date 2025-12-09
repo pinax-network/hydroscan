@@ -17,8 +17,7 @@ const tokens: Record<string, { symbol: string; contract: string }[]> = {
         { symbol: "USDT", contract: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB" },
     ],
     [TVMChains.Tron]: [
-        { symbol: "USDT", contract: "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj" },
-        { symbol: "USDC", contract: "THb4CqiFdwNHsWsQCs4JhzwjMWys4aqCbF" },
+        { symbol: "USDT", contract: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t" },
     ],
 };
 
