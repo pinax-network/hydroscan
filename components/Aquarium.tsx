@@ -148,7 +148,7 @@ export default React.memo(function Aquarium({ transfers, tierRanges, resetKey, c
     return (
         <>
             {/* Aquarium Canvas */}
-            <section className="fixed inset-0 overflow-hidden bg-black h-dvh min-h-screen md:min-h-[900px]">
+            <section className="fixed inset-0 overflow-hidden bg-black h-dvh">
                 <div className="absolute inset-0 top-[90%] bg-gradient-to-b from-transparent to-black/80 z-30 pointer-events-none"></div>
                 <div className="absolute inset-0 bottom-[90%] bg-gradient-to-t from-transparent to-black/80 z-30 pointer-events-none"></div>
 
@@ -163,7 +163,7 @@ export default React.memo(function Aquarium({ transfers, tierRanges, resetKey, c
                         className=""
                     />
                 </WaterEffect>
-                <div className="relative z-20 h-full w-screen overflow-hidden opacity-90">
+                <div className="relative z-20 h-full w-full overflow-hidden opacity-90">
                     {activeFish.map(t => (
                         (() => {
                             const tier = getTierForValue(Number(t.value), tierRanges);
@@ -227,22 +227,22 @@ export default React.memo(function Aquarium({ transfers, tierRanges, resetKey, c
                                 </div>
                                 <div className="text-left font-semibold sm:text-right">{formatAmount(transfer.value)}</div>
                             </div>
-                                <div className="grid gap-2">
-                                <div className="grid gap-1 sm:grid-cols-[auto,1fr] sm:items-center sm:gap-3">
-                                    <span className="opacity-60">From</span>
-                                    <a href={getExplorerUrl(pinnedChainMeta.explorerBaseUrl, "address", transfer.from)} target="_blank" rel="noreferrer" className="min-w-0 break-words font-mono text-blue-300 hover:underline sm:text-right">
+                            <div className="grid gap-2">
+                                <div className="flex items-center gap-4">
+                                    <span className="w-[84px] shrink-0 leading-none opacity-60 sm:text-[13px]">From</span>
+                                    <a href={getExplorerUrl(pinnedChainMeta.explorerBaseUrl, "address", transfer.from)} target="_blank" rel="noreferrer" className="min-w-0 flex-1 break-words font-mono leading-none text-blue-300 hover:underline text-right">
                                         {shortHash(transfer.from)}
                                     </a>
                                 </div>
-                                <div className="grid gap-1 sm:grid-cols-[auto,1fr] sm:items-center sm:gap-3">
-                                    <span className="opacity-60">To</span>
-                                    <a href={getExplorerUrl(pinnedChainMeta.explorerBaseUrl, "address", transfer.to)} target="_blank" rel="noreferrer" className="min-w-0 break-words font-mono text-blue-300 hover:underline sm:text-right">
+                                <div className="flex items-center gap-4">
+                                    <span className="w-[84px] shrink-0 leading-none opacity-60 sm:text-[13px]">To</span>
+                                    <a href={getExplorerUrl(pinnedChainMeta.explorerBaseUrl, "address", transfer.to)} target="_blank" rel="noreferrer" className="min-w-0 flex-1 break-words font-mono leading-none text-blue-300 hover:underline text-right">
                                         {shortHash(transfer.to)}
                                     </a>
                                 </div>
-                                <div className="grid gap-1 sm:grid-cols-[auto,1fr] sm:items-center sm:gap-3">
-                                    <span className="opacity-60">Transaction</span>
-                                    <a href={getExplorerUrl(pinnedChainMeta.explorerBaseUrl, "tx", transfer.txid)} target="_blank" rel="noreferrer" className="min-w-0 break-words font-mono text-blue-300 hover:underline sm:text-right">
+                                <div className="flex items-center gap-4">
+                                    <span className="w-[84px] shrink-0 leading-none opacity-60 sm:text-[13px]">Transaction</span>
+                                    <a href={getExplorerUrl(pinnedChainMeta.explorerBaseUrl, "tx", transfer.txid)} target="_blank" rel="noreferrer" className="min-w-0 flex-1 break-words font-mono leading-none text-blue-300 hover:underline text-right">
                                         {shortHash(transfer.txid)}
                                     </a>
                                 </div>
