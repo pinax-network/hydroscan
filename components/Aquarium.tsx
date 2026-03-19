@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Transfer, FishDirection } from "@/models/transfer.model";
 import Image from "next/image";
 import Fish from "@/components/Fish";
@@ -61,10 +62,16 @@ export default React.memo(function Aquarium({ transfers, tierRanges, resetKey, c
     const { isDarkMode } = useTheme();
 
     const seen = useRef(new Set<string>());
+    const [isMounted, setIsMounted] = useState(false);
     const [activeFish, setActiveFish] = useState<Transfer[]>([]);
     const [pinnedTransfers, setPinnedTransfers] = useState<PinnedTransfer[]>([]);
+    const [mobileSelectedTransfer, setMobileSelectedTransfer] = useState<PinnedTransfer | null>(null);
     const [hoveredTier, setHoveredTier] = useState<Tier | null>(null);
     const [selectedTiers, setSelectedTiers] = useState<Tier[]>([]);
+
+    React.useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     React.useEffect(() => {
         seen.current = new Set();
@@ -108,17 +115,19 @@ export default React.memo(function Aquarium({ transfers, tierRanges, resetKey, c
 
     const handleSelect = useCallback((fish: Transfer) => {
         const tier = getTierForValue(Number(fish.value), tierRanges);
+        const pinnedTransfer = {
+            key: `${fish.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            transfer: fish,
+            chainMeta,
+            token,
+        };
 
         setSelectedTiers((prev) => (
             prev.includes(tier) ? prev : [...prev, tier]
         ));
+        setMobileSelectedTransfer(pinnedTransfer);
         setPinnedTransfers((prev) => [
-            {
-                key: `${fish.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-                transfer: fish,
-                chainMeta,
-                token,
-            },
+            pinnedTransfer,
             ...prev,
         ].slice(0, MAX_INFO_BUBBLES));
     }, [chainMeta, tierRanges, token]);
@@ -139,7 +148,7 @@ export default React.memo(function Aquarium({ transfers, tierRanges, resetKey, c
     return (
         <>
             {/* Aquarium Canvas */}
-            <section className="fixed top-0 bottom-0 left-0 right-0 overflow-hidden bg-black h-screen min-h-[900px]">
+            <section className="fixed inset-0 overflow-hidden bg-black h-dvh min-h-screen md:min-h-[900px]">
                 <div className="absolute inset-0 top-[90%] bg-gradient-to-b from-transparent to-black/80 z-30 pointer-events-none"></div>
                 <div className="absolute inset-0 bottom-[90%] bg-gradient-to-t from-transparent to-black/80 z-30 pointer-events-none"></div>
 
@@ -154,7 +163,7 @@ export default React.memo(function Aquarium({ transfers, tierRanges, resetKey, c
                         className=""
                     />
                 </WaterEffect>
-                <div className="relative z-20 h-screen w-screen overflow-hidden opacity-90">
+                <div className="relative z-20 h-full w-screen overflow-hidden opacity-90">
                     {activeFish.map(t => (
                         (() => {
                             const tier = getTierForValue(Number(t.value), tierRanges);
@@ -176,13 +185,13 @@ export default React.memo(function Aquarium({ transfers, tierRanges, resetKey, c
                     ))}
                 </div>
 
-                <div className="absolute top-30 left-4 z-40 flex w-[360px] max-w-[calc(100vw-2rem)] flex-col gap-3">
+                <div className="absolute left-3 right-3 top-24 z-40 hidden max-h-[34vh] flex-col gap-3 overflow-y-auto pb-2 md:left-4 md:right-auto md:top-30 md:flex md:w-[360px] md:max-w-[calc(100vw-2rem)] md:max-h-none md:overflow-visible md:pb-0">
                     {pinnedTransfers.length > 0 && (
                         <button
                             type="button"
                             onClick={() => setPinnedTransfers([])}
                             className={cx(
-                                "absolute -top-4 -right-4 z-50 flex h-8 w-8 items-center justify-center rounded-full border text-sm font-semibold transition cursor-pointer",
+                                "sticky top-2 ml-auto z-[70] flex h-8 w-8 items-center justify-center rounded-full border text-sm font-semibold transition cursor-pointer md:absolute md:-top-5 md:-right-5",
                                 isDarkMode
                                     ? "black-glass text-white hover:bg-white/10"
                                     : "white-glass text-white hover:bg-white/10",
@@ -197,14 +206,14 @@ export default React.memo(function Aquarium({ transfers, tierRanges, resetKey, c
                         <div
                             key={key}
                             className={cx(
-                                "text-xs p-4 rounded",
+                                "rounded p-3 text-xs sm:p-4",
                                 isDarkMode
                                     ? "black-glass"
                                     : "white-glass text-white",
                             )}
                         >
-                            <div className="mb-3 flex items-center justify-between gap-3">
-                                <div className="flex items-center gap-2">
+                            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                                <div className="flex min-w-0 items-center gap-2">
                                     <Image src={pinnedChainMeta.logoPath} alt={`${pinnedChainMeta.label} logo`} width={18} height={18} className="h-[18px] w-[18px] object-contain" />
                                     {pinnedToken.logoPath ? (
                                         <Image src={pinnedToken.logoPath} alt={`${pinnedToken.symbol} logo`} width={18} height={18} className="h-[18px] w-[18px] object-contain rounded-full" />
@@ -216,24 +225,24 @@ export default React.memo(function Aquarium({ transfers, tierRanges, resetKey, c
                                     <span className="font-semibold">{pinnedChainMeta.label}</span>
                                     <span className="opacity-60">{pinnedToken.symbol}</span>
                                 </div>
-                                <div className="text-right font-semibold">{formatAmount(transfer.value)}</div>
+                                <div className="text-left font-semibold sm:text-right">{formatAmount(transfer.value)}</div>
                             </div>
-                            <div className="grid gap-2">
-                                <div className="flex items-center justify-between gap-3">
+                                <div className="grid gap-2">
+                                <div className="grid gap-1 sm:grid-cols-[auto,1fr] sm:items-center sm:gap-3">
                                     <span className="opacity-60">From</span>
-                                    <a href={getExplorerUrl(pinnedChainMeta.explorerBaseUrl, "address", transfer.from)} target="_blank" rel="noreferrer" className="font-mono text-blue-300 hover:underline">
+                                    <a href={getExplorerUrl(pinnedChainMeta.explorerBaseUrl, "address", transfer.from)} target="_blank" rel="noreferrer" className="min-w-0 break-words font-mono text-blue-300 hover:underline sm:text-right">
                                         {shortHash(transfer.from)}
                                     </a>
                                 </div>
-                                <div className="flex items-center justify-between gap-3">
+                                <div className="grid gap-1 sm:grid-cols-[auto,1fr] sm:items-center sm:gap-3">
                                     <span className="opacity-60">To</span>
-                                    <a href={getExplorerUrl(pinnedChainMeta.explorerBaseUrl, "address", transfer.to)} target="_blank" rel="noreferrer" className="font-mono text-blue-300 hover:underline">
+                                    <a href={getExplorerUrl(pinnedChainMeta.explorerBaseUrl, "address", transfer.to)} target="_blank" rel="noreferrer" className="min-w-0 break-words font-mono text-blue-300 hover:underline sm:text-right">
                                         {shortHash(transfer.to)}
                                     </a>
                                 </div>
-                                <div className="flex items-center justify-between gap-3">
+                                <div className="grid gap-1 sm:grid-cols-[auto,1fr] sm:items-center sm:gap-3">
                                     <span className="opacity-60">Transaction</span>
-                                    <a href={getExplorerUrl(pinnedChainMeta.explorerBaseUrl, "tx", transfer.txid)} target="_blank" rel="noreferrer" className="font-mono text-blue-300 hover:underline">
+                                    <a href={getExplorerUrl(pinnedChainMeta.explorerBaseUrl, "tx", transfer.txid)} target="_blank" rel="noreferrer" className="min-w-0 break-words font-mono text-blue-300 hover:underline sm:text-right">
                                         {shortHash(transfer.txid)}
                                     </a>
                                 </div>
@@ -241,6 +250,79 @@ export default React.memo(function Aquarium({ transfers, tierRanges, resetKey, c
                         </div>
                     ))}
                 </div>
+
+                {isMounted && mobileSelectedTransfer && createPortal(
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 px-4 py-4 md:hidden">
+                        <div
+                            className="absolute inset-0"
+                            onClick={() => setMobileSelectedTransfer(null)}
+                            aria-hidden="true"
+                        />
+                        <div
+                            className={cx(
+                                "relative h-full w-full overflow-y-auto rounded-none p-5 text-sm shadow-2xl",
+                                isDarkMode
+                                    ? "bg-slate-950 text-white"
+                                    : "bg-white text-slate-950",
+                            )}
+                        >
+                            <button
+                                type="button"
+                                onClick={() => setMobileSelectedTransfer(null)}
+                                className={cx(
+                                    "absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border text-base font-semibold transition cursor-pointer",
+                                    isDarkMode
+                                        ? "border-white/15 bg-white/5 text-white hover:bg-white/10"
+                                        : "border-slate-200 bg-slate-100 text-slate-950 hover:bg-slate-200",
+                                )}
+                                aria-label="Close transfer info"
+                                title="Close"
+                            >
+                                ×
+                            </button>
+                            <div className="mb-6 flex flex-col gap-3 pr-12">
+                                <div className="flex min-w-0 items-center gap-2">
+                                    <Image src={mobileSelectedTransfer.chainMeta.logoPath} alt={`${mobileSelectedTransfer.chainMeta.label} logo`} width={18} height={18} className="h-[18px] w-[18px] object-contain" />
+                                    {mobileSelectedTransfer.token.logoPath ? (
+                                        <Image src={mobileSelectedTransfer.token.logoPath} alt={`${mobileSelectedTransfer.token.symbol} logo`} width={18} height={18} className="h-[18px] w-[18px] object-contain rounded-full" />
+                                    ) : (
+                                        <div className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-white/10 px-1 text-[10px] font-semibold">
+                                            {mobileSelectedTransfer.token.symbol}
+                                        </div>
+                                    )}
+                                    <span className="font-semibold">{mobileSelectedTransfer.chainMeta.label}</span>
+                                </div>
+                                <div className="flex items-end gap-2">
+                                    <div className="text-3xl font-semibold">{formatAmount(mobileSelectedTransfer.transfer.value)}</div>
+                                    <span className={cx("pb-1 text-base font-medium", isDarkMode ? "text-white/60" : "text-slate-500")}>
+                                        {mobileSelectedTransfer.token.symbol}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="grid gap-5">
+                                <div className="grid gap-1">
+                                    <span className={cx(isDarkMode ? "text-white/60" : "text-slate-500")}>From</span>
+                                    <a href={getExplorerUrl(mobileSelectedTransfer.chainMeta.explorerBaseUrl, "address", mobileSelectedTransfer.transfer.from)} target="_blank" rel="noreferrer" className="break-words font-mono text-blue-300 hover:underline">
+                                        {shortHash(mobileSelectedTransfer.transfer.from)}
+                                    </a>
+                                </div>
+                                <div className="grid gap-1">
+                                    <span className={cx(isDarkMode ? "text-white/60" : "text-slate-500")}>To</span>
+                                    <a href={getExplorerUrl(mobileSelectedTransfer.chainMeta.explorerBaseUrl, "address", mobileSelectedTransfer.transfer.to)} target="_blank" rel="noreferrer" className="break-words font-mono text-blue-300 hover:underline">
+                                        {shortHash(mobileSelectedTransfer.transfer.to)}
+                                    </a>
+                                </div>
+                                <div className="grid gap-1">
+                                    <span className={cx(isDarkMode ? "text-white/60" : "text-slate-500")}>Transaction</span>
+                                    <a href={getExplorerUrl(mobileSelectedTransfer.chainMeta.explorerBaseUrl, "tx", mobileSelectedTransfer.transfer.txid)} target="_blank" rel="noreferrer" className="break-words font-mono text-blue-300 hover:underline">
+                                        {shortHash(mobileSelectedTransfer.transfer.txid)}
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>,
+                    document.body
+                )}
 
                 <FishLegend
                     tierRanges={tierRanges}

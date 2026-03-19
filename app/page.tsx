@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { flushSync } from "react-dom";
 import { Transfer } from "@/models/transfer.model";
 import Aquarium from "@/components/Aquarium";
 import Menu from "@/components/Menu";
@@ -17,10 +16,15 @@ function AquariumContent() {
     const { selectedChain, contract } = useChain();
     const { theme } = useTheme();
     const [resetKey, setResetKey] = useState<number>(0);
+    const hasAutoStarted = useRef(false);
     const [appliedSelection, setAppliedSelection] = useState({
         selectedChain,
         contract,
     });
+    const [pendingSelection, setPendingSelection] = useState<{
+        selectedChain: string;
+        contract: string;
+    } | null>(null);
 
     const [transfers, setTransfers] = useState<Transfer[]>([]);
     const [lastBlock, setLastBlock] = useState<number | null>(null);
@@ -73,11 +77,6 @@ function AquariumContent() {
         };
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
-        
-        // Initial fetch and start polling
-        setTimeout(() => {
-            fetchTransfersRef.current();
-        }, 1);
         startPolling();
 
         return () => {
@@ -91,15 +90,38 @@ function AquariumContent() {
         setLastBlock(null);
     }, []);
 
-    const changeDetails = useCallback(async () => {
+    useEffect(() => {
+        if (!pendingSelection) return;
+
+        const id = window.setTimeout(() => {
+            setAppliedSelection(pendingSelection);
+            void fetchTransfers(pendingSelection, null, true);
+            setPendingSelection(null);
+        }, 0);
+
+        return () => {
+            window.clearTimeout(id);
+        };
+    }, [fetchTransfers, pendingSelection]);
+
+    const changeDetails = useCallback(() => {
         const nextSelection = { selectedChain, contract };
-        flushSync(() => {
-            resetAll();
-            setResetKey(prev => prev + 1);
-        });
-        setAppliedSelection(nextSelection);
-        await fetchTransfers(nextSelection, null, true);
-    }, [contract, fetchTransfers, resetAll, selectedChain]);
+        resetAll();
+        setResetKey(prev => prev + 1);
+        setPendingSelection(nextSelection);
+    }, [contract, resetAll, selectedChain]);
+
+    useEffect(() => {
+        if (hasAutoStarted.current) return;
+        hasAutoStarted.current = true;
+        const id = window.setTimeout(() => {
+            void changeDetails();
+        }, 0);
+
+        return () => {
+            window.clearTimeout(id);
+        };
+    }, [changeDetails]);
 
     return (
         <div className={cx("min-h-screen", theme.bg, theme.textPrimary)}>
@@ -121,7 +143,7 @@ function AquariumContent() {
             />
 
             {/* PINAX LOGO OVERLAY */}
-            <div className="fixed bottom-10 right-10 z-50 hover:opacity-100 transition">
+            <div className="fixed bottom-4 right-4 z-50 hidden transition hover:opacity-100 md:bottom-10 md:right-10 md:block">
                 <a href="https://pinax.network" target="_blank" aria-label="Pinax.io" className="flex justify-end items-end flex-col">
 
                     <svg width="30" viewBox="0 0 75 97" fill="none" xmlns="http://www.w3.org/2000/svg">
