@@ -2,16 +2,11 @@
 
 import React, {useMemo, useState} from "react";
 import { Transfer } from "@/models/transfer.model";
-import { Tier, TierRange } from "@/lib/token-config";
+import { Tier, TierRange, getTierForValue } from "@/lib/token-config";
 
 const ENTRANCE_DELAY_DIVISOR = 5;
 const SPRITE_ANIMATION_DURATION = 0.5; // 4 frames at ~200ms each
 const SPRITE_FRAME_COUNT = 4;
-
-const getTier = (value: number, tierRanges: TierRange[]): Tier => {
-    const tier = tierRanges.find(({ maxValue }) => maxValue === null || value < maxValue);
-    return tier?.tier || "whale";
-};
 
 const formatValue = (value: string) => {
     const num = parseFloat(value);
@@ -62,7 +57,9 @@ interface Props {
     maxSwimTime: number;
     minSwimTime: number;
     onSelect: (fish: Transfer) => void;
+    onTierHoverChange?: (tier: Tier | null) => void;
     onDone?: (id: string) => void;
+    isDimmed?: boolean;
 }
 
 const bannerOffsets: Record<Tier, number> = {
@@ -75,11 +72,20 @@ const bannerOffsets: Record<Tier, number> = {
     whale: 120,
 };
 
-export default React.memo(function Fish({ fish, tierRanges, maxSwimTime, minSwimTime, onSelect, onDone }: Props) {
+export default React.memo(function Fish({
+    fish,
+    tierRanges,
+    maxSwimTime,
+    minSwimTime,
+    onSelect,
+    onTierHoverChange,
+    onDone,
+    isDimmed = false,
+}: Props) {
 
     const [hovering, setHovering] = useState(false);
     const numericValue = parseFloat(fish.value);
-    const tier = getTier(numericValue, tierRanges);
+    const tier = getTierForValue(numericValue, tierRanges);
 
     const y = tier === "bottomFeeder" ? "95%" : `${fish.randomY + 5}%`;
 
@@ -128,8 +134,10 @@ export default React.memo(function Fish({ fish, tierRanges, maxSwimTime, minSwim
             willChange: "transform" as const,
             pointerEvents: "auto" as const,
             cursor: "pointer" as const,
+            opacity: isDimmed ? 0.12 : 1,
+            transition: "opacity 180ms ease",
         };
-    }, [y, swimTime, entranceDelay, imageWidth, fish.randomDirection]);
+    }, [y, swimTime, entranceDelay, imageWidth, fish.randomDirection, isDimmed]);
 
     const spriteStyle = useMemo(() => {
         const isRightToLeft = fish.randomDirection === 'rightToLeft';
@@ -150,9 +158,9 @@ export default React.memo(function Fish({ fish, tierRanges, maxSwimTime, minSwim
             animationPlayState: "running" as const,
             animationDelay: `${(fish.randomFrameOffset / SPRITE_FRAME_COUNT) * SPRITE_ANIMATION_DURATION}s`,
             transform,
-            filter: `hue-rotate(${fish.randomColor}deg)`,
+            filter: `${isDimmed ? "saturate(0.4) brightness(0.7)" : ""} hue-rotate(${fish.randomColor}deg)`.trim(),
         };
-    }, [imageWidth, imageHeight, spriteSheetSrc, fish.randomFrameOffset, fish.randomColor, fish.randomDirection, minTime, swimTime, tier]);
+    }, [imageWidth, imageHeight, spriteSheetSrc, fish.randomFrameOffset, fish.randomColor, fish.randomDirection, minTime, swimTime, tier, isDimmed]);
 
     const bannerStyle = useMemo(() => {
         const isRightToLeft = fish.randomDirection === 'rightToLeft';
@@ -166,21 +174,26 @@ export default React.memo(function Fish({ fish, tierRanges, maxSwimTime, minSwim
             color: "#fff",
             padding: "2px 6px",
             borderRadius: "4px",
-            fontSize: `11px`,
+            fontSize: hovering ? `14px` : `11px`,
             fontWeight: 500,
             whiteSpace: "nowrap" as const,
             pointerEvents: "none" as const,
             border: "1px solid rgba(255, 255, 255, 0.2)",
             opacity: hovering ? 1 : 0.2,
+            transform: hovering ? "scale(1.12)" : "scale(1)",
+            transformOrigin: isRightToLeft ? "left center" : "right center",
+            transition: "opacity 140ms ease, transform 140ms ease, font-size 140ms ease",
         };
     }, [imageHeight, tier, imageWidth, hovering, fish.randomDirection]);
 
     const handlePointerEnter = () => {
         setHovering(true);
+        onTierHoverChange?.(tier);
     };
 
     const handlePointerLeave = () => {
         setHovering(false);
+        onTierHoverChange?.(null);
     };
 
 

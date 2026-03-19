@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
+import { flushSync } from "react-dom";
 import { Transfer } from "@/models/transfer.model";
 import Aquarium from "@/components/Aquarium";
 import Menu from "@/components/Menu";
@@ -16,25 +17,37 @@ function AquariumContent() {
     const { selectedChain, contract } = useChain();
     const { theme } = useTheme();
     const [resetKey, setResetKey] = useState<number>(0);
+    const [appliedSelection, setAppliedSelection] = useState({
+        selectedChain,
+        contract,
+    });
 
     const [transfers, setTransfers] = useState<Transfer[]>([]);
     const [lastBlock, setLastBlock] = useState<number | null>(null);
-    const tierRanges = getTierRanges(selectedChain, contract);
-    const selectedToken = findTokenOption(selectedChain, contract) || NATIVE_TOKEN_BY_CHAIN[selectedChain];
+    const tierRanges = getTierRanges(appliedSelection.selectedChain, appliedSelection.contract);
+    const selectedToken = findTokenOption(appliedSelection.selectedChain, appliedSelection.contract) || NATIVE_TOKEN_BY_CHAIN[appliedSelection.selectedChain];
 
-    const fetchTransfers = useCallback(async () => {
+    const fetchTransfers = useCallback(async (
+        selection = appliedSelection,
+        block = lastBlock,
+        replace = false
+    ) => {
         const result = await fetch('/api/transfers/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ selectedChain, contract, lastBlock })
+            body: JSON.stringify({
+                selectedChain: selection.selectedChain,
+                contract: selection.contract,
+                lastBlock: block,
+            })
         }).then(res => res.json()).catch(() => null);
         if (!result || !result.transfers) return;
 
         const incoming = result.transfers as Transfer[];
-        
-        setTransfers(prev => [...prev, ...incoming]);
+
+        setTransfers(prev => replace ? incoming : [...prev, ...incoming]);
         setLastBlock(result.lastBlock);
-    }, [selectedChain, contract, lastBlock]);
+    }, [appliedSelection, lastBlock]);
 
     const fetchTransfersRef = useRef(fetchTransfers);
 
@@ -79,10 +92,14 @@ function AquariumContent() {
     }, []);
 
     const changeDetails = useCallback(async () => {
-        resetAll();
-        setResetKey(prev => prev + 1);
-        await fetchTransfersRef.current();
-    }, [resetAll]);
+        const nextSelection = { selectedChain, contract };
+        flushSync(() => {
+            resetAll();
+            setResetKey(prev => prev + 1);
+        });
+        setAppliedSelection(nextSelection);
+        await fetchTransfers(nextSelection, null, true);
+    }, [contract, fetchTransfers, resetAll, selectedChain]);
 
     return (
         <div className={cx("min-h-screen", theme.bg, theme.textPrimary)}>
@@ -99,7 +116,7 @@ function AquariumContent() {
                 transfers={transfers}
                 tierRanges={tierRanges}
                 resetKey={resetKey}
-                chainMeta={CHAIN_META[selectedChain]}
+                chainMeta={CHAIN_META[appliedSelection.selectedChain]}
                 token={selectedToken}
             />
 

@@ -1,8 +1,9 @@
 'use client';
 
 import React from "react";
+import Image from "next/image";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Tier, TierRange } from "@/lib/token-config";
+import { Tier, TierRange, TokenOption } from "@/lib/token-config";
 
 const cx = (...classes: string[]) => classes.filter(Boolean).join(" ");
 
@@ -20,6 +21,11 @@ const NORMALIZED_WIDTH = 50; // pixels
 
 interface Props {
     tierRanges: TierRange[];
+    token: TokenOption;
+    hoveredTier: Tier | null;
+    selectedTiers: Tier[];
+    onTierHoverChange: (tier: Tier | null) => void;
+    onTierToggle: (tier: Tier) => void;
 }
 
 const formatValue = (value: number): string => {
@@ -32,20 +38,61 @@ const formatValue = (value: number): string => {
     return value.toExponential(2);
 };
 
-export default React.memo(function FishLegend({ tierRanges }: Props) {
+export default React.memo(function FishLegend({
+    tierRanges,
+    token,
+    hoveredTier,
+    selectedTiers,
+    onTierHoverChange,
+    onTierToggle,
+}: Props) {
     const { isDarkMode } = useTheme();
 
     return (
         <div className={cx(
-            "text-xs absolute top-30 right-4 z-40 p-4 rounded",
+            "text-xs absolute top-30 right-4 z-40 p-4 rounded w-[300px] max-w-[calc(100vw-2rem)]",
             isDarkMode
                 ? "black-glass"
                 : "white-glass text-white",
         )}>
+            <div className="mb-4 flex items-center gap-3 border-b border-white/10 pb-4">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/6 ring-1 ring-white/10">
+                    {token.logoPath ? (
+                        <Image
+                            src={token.logoPath}
+                            alt={`${token.symbol} logo`}
+                            width={40}
+                            height={40}
+                            className="h-10 w-10 object-contain"
+                        />
+                    ) : (
+                        <div className="text-lg font-semibold">{token.symbol}</div>
+                    )}
+                </div>
+                <div className="min-w-0">
+                    <div className="text-[11px] uppercase tracking-[0.24em] opacity-50">School Sizes</div>
+                    <div className="text-2xl font-semibold leading-none mt-1">{token.symbol}</div>
+                </div>
+            </div>
             <div className="space-y-2">
                 {tierRanges.map(({ tier, minValue, maxValue }) => {
+                    const isHovered = hoveredTier === tier;
+                    const isSelected = selectedTiers.includes(tier);
+
                     return (
-                        <div key={tier} className="flex items-center gap-2 py-1">
+                        <button
+                            key={tier}
+                            type="button"
+                            onMouseEnter={() => onTierHoverChange(tier)}
+                            onMouseLeave={() => onTierHoverChange(null)}
+                            onClick={() => onTierToggle(tier)}
+                            className={cx(
+                                "flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left transition cursor-pointer",
+                                isSelected || isHovered
+                                    ? "bg-white/10 ring-1 ring-white/15"
+                                    : "hover:bg-white/5",
+                            )}
+                        >
                             <div 
                                 className="flex-shrink-0"
                                 style={{
@@ -64,7 +111,7 @@ export default React.memo(function FishLegend({ tierRanges }: Props) {
                                     {formatValue(minValue)} - {maxValue === null ? '∞' : formatValue(maxValue)}
                                 </div>
                             </div>
-                        </div>
+                        </button>
                     );
                 })}
             </div>

@@ -46,7 +46,7 @@ export default function Menu({ onChangeDetails }: MenuProps) {
 
                 <section className="flex gap-3 flex-1">
                     {/* Blockchain Select */}
-                    <div className="flex flex-col flex-1">
+                    <div className="flex flex-col flex-none w-[22rem] max-w-[22rem]">
                         <div className="flex items-center gap-2">
                             <div className={cx(
                                 "min-w-[52px] h-[39px] rounded px-2 flex items-center justify-center border",

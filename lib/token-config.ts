@@ -182,6 +182,11 @@ export const findTokenOption = (selectedChain: string, contract: string) => {
     return TOKENS_BY_CHAIN[selectedChain]?.find((token) => token.contract.toLowerCase() === contract.toLowerCase()) || null;
 };
 
+export const getTierForValue = (value: number, tierRanges: TierRange[]): Tier => {
+    const tier = tierRanges.find(({ maxValue }) => maxValue === null || value < maxValue);
+    return tier?.tier || "whale";
+};
+
 export const getTierRanges = (
     selectedChain: string,
     contract: string
