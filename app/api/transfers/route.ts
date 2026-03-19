@@ -15,23 +15,25 @@ export async function POST(request: Request) {
     const isEVM = Object.values(EVMChains).includes(selectedChain);
     const isSVM = Object.values(SVMChains).includes(selectedChain);
     const isTVM = Object.values(TVMChains).includes(selectedChain);
+    const isNative = contract === "";
 
     const limit = 10;
     const baseParams: any = {
         network: selectedChain,
         limit,
-        contract: contract === "" ? undefined : contract,
-        lastBlock
+        start_block: lastBlock === null ? undefined : lastBlock + 1,
     };
 
+    if (isSVM && !isNative) {
+        baseParams.mint = contract;
+    }
+
+    if (!isSVM && !isNative) {
+        baseParams.contract = contract;
+    }
+
     try {
-        const vm = (() => {
-            if (isEVM) return 'evm';
-            if (isSVM) return 'svm';
-            if (isTVM) return 'tvm';
-            return null;
-        })();
-        if(!vm){
+        if(!isEVM && !isSVM && !isTVM){
             return NextResponse.json({ error: 'Unsupported chain' }, { status: 400 });
         }
 
@@ -39,7 +41,18 @@ export async function POST(request: Request) {
 
         for (let page = 1; page <= MAX_PAGES; page++) {
             const params = { ...baseParams, page };
-            const res: any = await client[vm].tokens.getTransfers(params);
+            let res: any;
+            if (isNative && isEVM) {
+                res = await client.evm.tokens.getNativeTransfers(params);
+            } else if (isNative && isTVM) {
+                res = await client.tvm.tokens.getNativeTransfers(params);
+            } else if (isEVM) {
+                res = await client.evm.tokens.getTransfers(params);
+            } else if (isSVM) {
+                res = await client.svm.tokens.getTransfers(params);
+            } else {
+                res = await client.tvm.tokens.getTransfers(params);
+            }
 
             const pageData = res?.data || [];
             allData.push(...pageData);
@@ -53,7 +66,7 @@ export async function POST(request: Request) {
             }
         }
 
-        let filtered = contract === "" ? allData.filter((item: {contract?: string, mint?: string}) => {
+        let filtered = isNative && isSVM ? allData.filter((item: {contract?: string, mint?: string}) => {
             if(item.contract){
                 return item.contract.toLowerCase() === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
             }
@@ -64,11 +77,14 @@ export async function POST(request: Request) {
             return false;
         }) : allData;
 
-        filtered = filtered.filter(x => x.value && parseFloat(x.value) > 0);
+        filtered = filtered.filter((item) => {
+            const amount = item.value ?? item.amount;
+            return amount !== null && amount !== undefined && Number(amount) > 0;
+        });
 
         const makeId = (item: any) => {
-            if(isSVM) return `${item.source}-${item.destination}-${item.value}-${item.block_num}-${item.signature}`;
-            return `${item.from}-${item.to}-${item.value}-${item.log_index}-${item.transaction_id}`;
+            const txid = item.transaction_id || item.signature;
+            return `${item.from || item.source}-${item.to || item.destination}-${item.value || item.amount}-${item.block_num}-${txid}`;
         }
 
         const list = filtered.map((item: any) => ({
@@ -77,7 +93,7 @@ export async function POST(request: Request) {
             blockNumber: item.block_num,
             from: item.from || item.source,
             to: item.to || item.destination,
-            value: item.value,
+            value: String(item.value ?? item.amount ?? 0),
         }));
 
         const maxBlockNumber = list.length

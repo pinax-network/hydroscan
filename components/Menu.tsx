@@ -5,6 +5,7 @@ import { SVMChains } from "@pinax/token-api";
 import Image from "next/image";
 import { useChain } from '@/contexts/ChainContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { CHAIN_META, NATIVE_TOKEN_BY_CHAIN } from '@/lib/token-config';
 
 const cx = (...classes: string[]) => classes.filter(Boolean).join(" ");
 
@@ -17,6 +18,7 @@ export default function Menu({ onChangeDetails }: MenuProps) {
     const { isDarkMode, theme, toggleDarkMode } = useTheme();
 
     const tokenList = tokens[selectedChain] || [];
+    const selectedChainMeta = CHAIN_META[selectedChain];
 
     // can only show contract input on non-solana chains
     const isSolana = useMemo(() => {
@@ -50,25 +52,39 @@ export default function Menu({ onChangeDetails }: MenuProps) {
                 <section className="flex gap-3 flex-1">
                     {/* Blockchain Select */}
                     <div className="flex flex-col flex-1">
-                        <select
-                            className={cx(
-                                "text-sm px-3 py-2 rounded focus:outline-none border capitalize",
-                                theme.input
-                            )}
-                            value={selectedChain}
-                            onChange={(e) => {
-                                const chain = e.target.value;
-                                setSelectedChain(chain);
-                                const first = tokens[chain]?.[0];
-                                setContract(first?.contract || "");
-                            }}
-                        >
-                            {Object.keys(chains).map((key) => (
-                                <option key={key} value={chains[key]} className="text-black">
-                                    {key}
-                                </option>
-                            ))}
-                        </select>
+                        <div className="flex items-center gap-2">
+                            <div className={cx(
+                                "min-w-[52px] h-[39px] rounded px-2 flex items-center justify-center border",
+                                theme.input,
+                            )}>
+                                <Image
+                                    src={selectedChainMeta.logoPath}
+                                    alt={`${selectedChainMeta.label} logo`}
+                                    width={22}
+                                    height={22}
+                                    className="h-[22px] w-[22px] object-contain"
+                                />
+                            </div>
+                            <select
+                                className={cx(
+                                    "text-sm px-3 py-2 rounded focus:outline-none border capitalize flex-1",
+                                    theme.input
+                                )}
+                                value={selectedChain}
+                                onChange={(e) => {
+                                    const chain = e.target.value;
+                                    setSelectedChain(chain);
+                                    const first = tokens[chain]?.[0];
+                                    setContract(first?.contract || "");
+                                }}
+                            >
+                                {chains.map(({ network, label }) => (
+                                    <option key={network} value={network} className="text-black">
+                                        {label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
 
                     {/* Token Select */}
@@ -82,7 +98,7 @@ export default function Menu({ onChangeDetails }: MenuProps) {
                             onChange={(e) => setContract(e.target.value)}
                         >
                             <option key="native" value="" className="text-black">
-                                Native Token
+                                {NATIVE_TOKEN_BY_CHAIN[selectedChain]?.symbol || "Native Token"}
                             </option>
                             {tokenList.map((t) => (
                                 <option key={t.contract} value={t.contract} className="text-black">
@@ -162,7 +178,7 @@ export default function Menu({ onChangeDetails }: MenuProps) {
                         target="_blank"
                         className="px-4 py-2 rounded font-medium text-sm transition bg-white text-black hover:bg-blue-500 hover:text-white"
                     >
-                        TokenAPI Docs
+                        Docs
                     </a>
                 </div>
             </div>

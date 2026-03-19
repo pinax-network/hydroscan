@@ -2,23 +2,15 @@
 
 import React, {useMemo, useState} from "react";
 import { Transfer } from "@/models/transfer.model";
+import { Tier, TierRange } from "@/lib/token-config";
 
 const ENTRANCE_DELAY_DIVISOR = 5;
 const SPRITE_ANIMATION_DURATION = 0.5; // 4 frames at ~200ms each
 const SPRITE_FRAME_COUNT = 4;
 
-type Tier = "bottomFeeder" | "tiny" | "small" | "medium" | "large" | "huge" | "whale";
-
-const getTier = (value: number, supply: number): Tier => {
-    const pct = value / supply;
-
-    if (pct < 0.00000001) return "bottomFeeder";
-    if (pct < 0.0000001)  return "tiny";
-    if (pct < 0.000001)   return "small";
-    if (pct < 0.00001)    return "medium";
-    if (pct < 0.0001)     return "large";
-    if (pct < 0.001)      return "huge";
-    return "whale";
+const getTier = (value: number, tierRanges: TierRange[]): Tier => {
+    const tier = tierRanges.find(({ maxValue }) => maxValue === null || value < maxValue);
+    return tier?.tier || "whale";
 };
 
 const formatValue = (value: string) => {
@@ -66,7 +58,7 @@ const baseScales: Record<Tier, number> = {
 
 interface Props {
     fish: Transfer;
-    supply: number;
+    tierRanges: TierRange[];
     maxSwimTime: number;
     minSwimTime: number;
     isPaused: boolean;
@@ -85,10 +77,11 @@ const bannerOffsets: Record<Tier, number> = {
     whale: 120,
 };
 
-export default React.memo(function Fish({ fish, supply, maxSwimTime, minSwimTime, isPaused, onHoverStart, onHoverEnd, onDone }: Props) {
+export default React.memo(function Fish({ fish, tierRanges, maxSwimTime, minSwimTime, isPaused, onHoverStart, onHoverEnd, onDone }: Props) {
 
     const [hovering, setHovering] = useState(false);
-    const tier = getTier(parseFloat(fish.value), supply);
+    const numericValue = parseFloat(fish.value);
+    const tier = getTier(numericValue, tierRanges);
 
     const y = tier === "bottomFeeder" ? "95%" : `${fish.randomY + 5}%`;
 
@@ -101,15 +94,16 @@ export default React.memo(function Fish({ fish, supply, maxSwimTime, minSwimTime
     const entranceDelay = fish.randomEntranceDelay * (maxSwimTime / ENTRANCE_DELAY_DIVISOR);
 
     const scale = useMemo(() => {
-        const numericValue = parseFloat(fish.value);
-        let pctOfSupply = Math.min(numericValue / supply, 0.001);
-        if(isNaN(pctOfSupply) || !isFinite(pctOfSupply)) {
-            pctOfSupply = 0.000001;
-        }
-        const valueBoost = (pctOfSupply / 0.001) * 0.2;
+        const currentTier = tierRanges.find(({ tier: currentTier }) => currentTier === tier);
+        const tierMin = currentTier?.minValue ?? 0;
+        const tierMax = currentTier?.maxValue ?? Math.max(numericValue, tierMin + 1);
+        const normalizedTierMax = Math.max(tierMax, tierMin + 1);
+        const tierSpan = Math.max(normalizedTierMax - tierMin, Math.max(tierMin, 1));
+        const clampedValue = Math.min(Math.max(numericValue, tierMin), normalizedTierMax);
+        const valueBoost = ((clampedValue - tierMin) / tierSpan) * 0.2;
         const baseScale = baseScales[tier];
         return baseScale * (1 + valueBoost);
-    }, [fish.value, supply, tier]);
+    }, [numericValue, tier, tierRanges]);
 
     const spriteSheetSrc = getTierSpriteSheet(tier);
     const frameDims = tierFrameDimensions[tier];

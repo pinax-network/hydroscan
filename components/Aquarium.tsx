@@ -7,6 +7,7 @@ import Fish from "@/components/Fish";
 import WaterEffect from "@/components/WaterEffect";
 import FishLegend from "@/components/FishLegend";
 import { useTheme } from "@/contexts/ThemeContext";
+import { TierRange } from "@/lib/token-config";
 
 const cx = (...classes: string[]) => classes.filter(Boolean).join(" ");
 
@@ -14,13 +15,11 @@ const POLL_INTERVAL = 10;
 
 interface Props {
     transfers: Transfer[];
-    supply: number|null;
+    tierRanges: TierRange[];
     resetKey: number;
 }
 
-const SUPPLY_MODIFIER = 100;
-export default React.memo(function Aquarium({ transfers, supply, resetKey }: Props) {
-    if(supply) supply = supply / SUPPLY_MODIFIER;
+export default React.memo(function Aquarium({ transfers, tierRanges, resetKey }: Props) {
     const { isDarkMode } = useTheme();
 
     const seen = useRef(new Set<string>());
@@ -94,10 +93,10 @@ export default React.memo(function Aquarium({ transfers, supply, resetKey }: Pro
                     />
                 </WaterEffect>
                 <div className="relative z-20 h-screen w-screen overflow-hidden opacity-90">
-                    {supply !== null && activeFish.map(t => (
+                    {activeFish.map(t => (
                         <Fish key={`${t.id}-${t.randomFrameOffset}-${t.randomEntranceDelay}`}
                               fish={t}
-                              supply={supply}
+                              tierRanges={tierRanges}
                               maxSwimTime={POLL_INTERVAL*3}
                               minSwimTime={POLL_INTERVAL*1.5}
                               onDone={finishFish}
@@ -121,7 +120,7 @@ export default React.memo(function Aquarium({ transfers, supply, resetKey }: Pro
                         <div><b>Amount:</b> {pausedFish.value.toLocaleString()}</div>
                     </div>
                 ) : (
-                    supply !== null && <FishLegend supply={supply} />
+                    <FishLegend tierRanges={tierRanges} />
                 )}
             </section>
         </>

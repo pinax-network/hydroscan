@@ -6,36 +6,16 @@ export async function POST(request: Request) {
 
     const {selectedChain, contract} = data;
 
-    // no native supply from Pinax yet
-    if(!contract){
-        switch(selectedChain){
-            // hardcode known supplies for each
-            case EVMChains.Ethereum:
-            case EVMChains.Unichain:
-                return NextResponse.json({supply: 120_000_000});
-            case EVMChains.BSC:
-                return NextResponse.json({supply: 137_000_000});
-            case EVMChains.Polygon:
-                return NextResponse.json({supply: 10_540_000_000});
-            case EVMChains.Base:
-                return NextResponse.json({supply: 961_000_000_000});
-            case EVMChains.Avalanche:
-                return NextResponse.json({supply: 460_000_000});
-            case EVMChains.ArbitrumOne:
-                return NextResponse.json({supply: 10_000_000_000});
-            case EVMChains.Optimism:
-                return NextResponse.json({supply: 4_290_000_000});
-            case SVMChains.Solana:
-                return NextResponse.json({supply: 615_340_000});
-            case TVMChains.Tron:
-                return NextResponse.json({supply: 98_670_000_000});
-        }
-
+    if(selectedChain === SVMChains.Solana && !contract) {
+        return NextResponse.json({supply: 615_340_000});
     }
 
-    if(selectedChain == SVMChains.Solana) {
-        // only USDC support, return max supply
+    if(selectedChain === SVMChains.Solana) {
         return NextResponse.json({supply: 11_582_837_136});
+    }
+
+    if(selectedChain === TVMChains.Tron && !contract) {
+        return NextResponse.json({supply: 98_670_000_000});
     }
 
     const client = new TokenAPI({
@@ -47,37 +27,39 @@ export async function POST(request: Request) {
     const isTVM = Object.values(TVMChains).includes(selectedChain);
 
 
-    const params:any = {
-        network: selectedChain,
-        limit: 10,
-    };
-
-    if(isSVM){
-        params.mint = contract === "" ? undefined : contract;
-    } else {
-        params.contract = contract === "" ? undefined : contract;
-    }
-
-    const vm = (() => {
-        if (isEVM) return 'evm';
-        if (isSVM) return 'svm';
-        if (isTVM) return 'tvm';
-        return null;
-    })();
-    if(!vm){
+    if(!isEVM && !isSVM && !isTVM){
         return NextResponse.json({ error: 'Unsupported chain' }, { status: 400 });
     }
 
     try {
-
-        const res:any = await client[vm].tokens.getTokenMetadata(params);
+        let res: any;
+        if (isEVM && !contract) {
+            res = await client.evm.tokens.getNativeTokenMetadata({
+                network: selectedChain
+            });
+        } else if (isSVM) {
+            res = await client.svm.tokens.getTokenMetadata({
+                network: selectedChain,
+                mint: contract
+            });
+        } else if (isTVM) {
+            res = await client.tvm.tokens.getTokenMetadata({
+                network: selectedChain,
+                contract
+            });
+        } else {
+            res = await client.evm.tokens.getTokenMetadata({
+                network: selectedChain,
+                contract
+            });
+        }
 
         if(!res?.data || res.data.length === 0){
             return NextResponse.json({ error: 'Token not found' }, { status: 404 });
         }
 
         return NextResponse.json({
-            supply: res.data[0].total_supply
+            supply: res.data[0].total_supply || res.data[0].circulating_supply || null
         })
     } catch (err) {
         console.error("Error fetching transfers:", err);

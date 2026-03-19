@@ -2,20 +2,9 @@
 
 import React from "react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { Tier, TierRange } from "@/lib/token-config";
 
 const cx = (...classes: string[]) => classes.filter(Boolean).join(" ");
-
-type Tier = "bottomFeeder" | "tiny" | "small" | "medium" | "large" | "huge" | "whale";
-
-const tierThresholds: Array<{ tier: Tier; minPct: number; maxPct: number }> = [
-    { tier: "bottomFeeder", minPct: 0, maxPct: 0.00000001 },
-    { tier: "tiny", minPct: 0.00000001, maxPct: 0.0000001 },
-    { tier: "small", minPct: 0.0000001, maxPct: 0.000001 },
-    { tier: "medium", minPct: 0.000001, maxPct: 0.00001 },
-    { tier: "large", minPct: 0.00001, maxPct: 0.0001 },
-    { tier: "huge", minPct: 0.0001, maxPct: 0.001 },
-    { tier: "whale", minPct: 0.001, maxPct: Infinity },
-];
 
 const tierLabels: Record<Tier, string> = {
     bottomFeeder: "Shrimp",
@@ -30,7 +19,7 @@ const tierLabels: Record<Tier, string> = {
 const NORMALIZED_WIDTH = 50; // pixels
 
 interface Props {
-    supply: number;
+    tierRanges: TierRange[];
 }
 
 const formatValue = (value: number): string => {
@@ -43,7 +32,7 @@ const formatValue = (value: number): string => {
     return value.toExponential(2);
 };
 
-export default React.memo(function FishLegend({ supply }: Props) {
+export default React.memo(function FishLegend({ tierRanges }: Props) {
     const { isDarkMode } = useTheme();
 
     return (
@@ -54,10 +43,7 @@ export default React.memo(function FishLegend({ supply }: Props) {
                 : "white-glass text-white",
         )}>
             <div className="space-y-2">
-                {tierThresholds.map(({ tier, minPct, maxPct }) => {
-                    const minValue = minPct * supply;
-                    const maxValue = maxPct === Infinity ? Infinity : maxPct * supply;
-                    
+                {tierRanges.map(({ tier, minValue, maxValue }) => {
                     return (
                         <div key={tier} className="flex items-center gap-2 py-1">
                             <div 
@@ -75,7 +61,7 @@ export default React.memo(function FishLegend({ supply }: Props) {
                             <div className="flex-1 min-w-0">
                                 <div className="font-semibold">{tierLabels[tier]}</div>
                                 <div className="text-xs opacity-50">
-                                    {formatValue(minValue)} - {maxValue === Infinity ? '∞' : formatValue(maxValue)}
+                                    {formatValue(minValue)} - {maxValue === null ? '∞' : formatValue(maxValue)}
                                 </div>
                             </div>
                         </div>

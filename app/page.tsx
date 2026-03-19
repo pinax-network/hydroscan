@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { Transfer } from "@/models/transfer.model";
 import Aquarium from "@/components/Aquarium";
 import Menu from "@/components/Menu";
 import { ChainProvider, useChain } from "@/contexts/ChainContext";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
+import { getTierRanges } from "@/lib/token-config";
 
 const cx = (...classes: string[]) => classes.filter(Boolean).join(" ");
 
@@ -19,6 +20,7 @@ function AquariumContent() {
     const [transfers, setTransfers] = useState<Transfer[]>([]);
     const [lastBlock, setLastBlock] = useState<number | null>(null);
     const [supply, setSupply] = useState<number | null>(null);
+    const tierRanges = useMemo(() => getTierRanges(selectedChain, contract, supply), [selectedChain, contract, supply]);
 
     const fetchSupply = useCallback(async () => {
         const result = await fetch('/api/supply/', {
@@ -95,7 +97,7 @@ function AquariumContent() {
     const resetAll = useCallback(() => {
         setTransfers([]);
         setLastBlock(null);
-        setSupply(null);
+            setSupply(null);
     }, []);
 
     const changeDetails = useCallback(async () => {
@@ -116,7 +118,7 @@ function AquariumContent() {
             <Menu onChangeDetails={changeDetails} />
 
             {/* Aquarium Component */}
-            <Aquarium transfers={transfers} supply={supply} resetKey={resetKey} />
+            <Aquarium transfers={transfers} tierRanges={tierRanges} resetKey={resetKey} />
 
             {/* PINAX LOGO OVERLAY */}
             <div className="fixed bottom-10 right-10 z-50 hover:opacity-100 transition">

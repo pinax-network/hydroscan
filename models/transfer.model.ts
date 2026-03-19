@@ -3,6 +3,7 @@ export type FishDirection = 'leftToRight' | 'rightToLeft';
 export interface Transfer {
     id:string;
     txid: string;
+    blockNumber: number;
     from: string;
     to: string;
     value: string;
