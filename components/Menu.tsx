@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useMemo } from 'react';
-import { SVMChains } from "@pinax/token-api";
+import React from 'react';
 import Image from "next/image";
 import { useChain } from '@/contexts/ChainContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { CHAIN_META, NATIVE_TOKEN_BY_CHAIN } from '@/lib/token-config';
+import { CHAIN_META, NATIVE_TOKEN_BY_CHAIN, findTokenOption } from '@/lib/token-config';
 
 const cx = (...classes: string[]) => classes.filter(Boolean).join(" ");
 
@@ -19,11 +18,7 @@ export default function Menu({ onChangeDetails }: MenuProps) {
 
     const tokenList = tokens[selectedChain] || [];
     const selectedChainMeta = CHAIN_META[selectedChain];
-
-    // can only show contract input on non-solana chains
-    const isSolana = useMemo(() => {
-        return selectedChain === SVMChains.Solana;
-    }, [selectedChain]);
+    const selectedToken = findTokenOption(selectedChain, contract) || NATIVE_TOKEN_BY_CHAIN[selectedChain];
 
     return (
         <div className="w-full flex justify-center pt-4 px-4 relative z-50">
@@ -89,40 +84,44 @@ export default function Menu({ onChangeDetails }: MenuProps) {
 
                     {/* Token Select */}
                     <div className="flex flex-col">
-                        <select
-                            className={cx(
-                                "text-sm px-3 py-2 rounded focus:outline-none border",
-                                theme.input
-                            )}
-                            value={contract}
-                            onChange={(e) => setContract(e.target.value)}
-                        >
-                            <option key="native" value="" className="text-black">
-                                {NATIVE_TOKEN_BY_CHAIN[selectedChain]?.symbol || "Native Token"}
-                            </option>
-                            {tokenList.map((t) => (
-                                <option key={t.contract} value={t.contract} className="text-black">
-                                    {t.symbol}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Contract Input */}
-                    {!isSolana &&
-                        <div className="flex flex-col w-full">
-                            <input
-                                type="text"
-                                value={contract}
-                                onChange={(e) => setContract(e.target.value)}
-                                placeholder="Enter contract address"
+                        <div className="flex items-center gap-2">
+                            <div className={cx(
+                                "min-w-[52px] h-[39px] rounded px-2 flex items-center justify-center border",
+                                theme.input,
+                            )}>
+                                {selectedToken?.logoPath ? (
+                                    <Image
+                                        src={selectedToken.logoPath}
+                                        alt={`${selectedToken.symbol} symbol`}
+                                        width={22}
+                                        height={22}
+                                        className="h-[22px] w-[22px] object-contain"
+                                    />
+                                ) : (
+                                    <span className={cx("text-[11px] font-semibold", theme.textPrimary)}>
+                                        {selectedToken?.symbol || "TOK"}
+                                    </span>
+                                )}
+                            </div>
+                            <select
                                 className={cx(
-                                    "text-sm px-3 py-2 rounded focus:outline-none border",
+                                    "text-sm px-3 py-2 rounded focus:outline-none border min-w-[140px]",
                                     theme.input
                                 )}
-                            />
+                                value={contract}
+                                onChange={(e) => setContract(e.target.value)}
+                            >
+                                <option key="native" value="" className="text-black">
+                                    {NATIVE_TOKEN_BY_CHAIN[selectedChain]?.symbol || "Native Token"}
+                                </option>
+                                {tokenList.map((t) => (
+                                    <option key={t.contract} value={t.contract} className="text-black">
+                                        {t.symbol}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
-                    }
+                    </div>
 
                     {/* Button to Go! */}
                     <div className="flex flex-col justify-end flex-shrink-0">

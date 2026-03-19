@@ -61,9 +61,7 @@ interface Props {
     tierRanges: TierRange[];
     maxSwimTime: number;
     minSwimTime: number;
-    isPaused: boolean;
-    onHoverStart: () => void;
-    onHoverEnd: () => void;
+    onSelect: (fish: Transfer) => void;
     onDone?: (id: string) => void;
 }
 
@@ -77,7 +75,7 @@ const bannerOffsets: Record<Tier, number> = {
     whale: 120,
 };
 
-export default React.memo(function Fish({ fish, tierRanges, maxSwimTime, minSwimTime, isPaused, onHoverStart, onHoverEnd, onDone }: Props) {
+export default React.memo(function Fish({ fish, tierRanges, maxSwimTime, minSwimTime, onSelect, onDone }: Props) {
 
     const [hovering, setHovering] = useState(false);
     const numericValue = parseFloat(fish.value);
@@ -126,12 +124,12 @@ export default React.memo(function Fish({ fish, tierRanges, maxSwimTime, minSwim
             animationTimingFunction: "linear",
             animationFillMode: "forwards",
             animationDelay: `${entranceDelay}s`,
-            animationPlayState: isPaused ? "paused" as const : "running" as const,
+            animationPlayState: "running" as const,
             willChange: "transform" as const,
             pointerEvents: "auto" as const,
             cursor: "pointer" as const,
         };
-    }, [y, swimTime, entranceDelay, isPaused, imageWidth, fish.randomDirection]);
+    }, [y, swimTime, entranceDelay, imageWidth, fish.randomDirection]);
 
     const spriteStyle = useMemo(() => {
         const isRightToLeft = fish.randomDirection === 'rightToLeft';
@@ -149,12 +147,12 @@ export default React.memo(function Fish({ fish, tierRanges, maxSwimTime, minSwim
             animationDuration: `${SPRITE_ANIMATION_DURATION * (swimTime/minTime)}s`,
             animationTimingFunction: `steps(${SPRITE_FRAME_COUNT})`,
             animationIterationCount: "infinite" as const,
-            animationPlayState: isPaused ? "paused" as const : "running" as const,
+            animationPlayState: "running" as const,
             animationDelay: `${(fish.randomFrameOffset / SPRITE_FRAME_COUNT) * SPRITE_ANIMATION_DURATION}s`,
             transform,
             filter: `hue-rotate(${fish.randomColor}deg)`,
         };
-    }, [imageWidth, imageHeight, spriteSheetSrc, isPaused, fish.randomFrameOffset, fish.randomColor, fish.randomDirection, minTime, swimTime, tier]);
+    }, [imageWidth, imageHeight, spriteSheetSrc, fish.randomFrameOffset, fish.randomColor, fish.randomDirection, minTime, swimTime, tier]);
 
     const bannerStyle = useMemo(() => {
         const isRightToLeft = fish.randomDirection === 'rightToLeft';
@@ -177,21 +175,20 @@ export default React.memo(function Fish({ fish, tierRanges, maxSwimTime, minSwim
         };
     }, [imageHeight, tier, imageWidth, hovering, fish.randomDirection]);
 
-    const handleHoverStart = () => {
+    const handlePointerEnter = () => {
         setHovering(true);
-        onHoverStart();
     };
 
-    const handleHoverEnd = () => {
+    const handlePointerLeave = () => {
         setHovering(false);
-        onHoverEnd();
     };
 
 
     return (
         <div
-            onMouseEnter={handleHoverStart}
-            onMouseLeave={handleHoverEnd}
+            onMouseEnter={handlePointerEnter}
+            onMouseLeave={handlePointerLeave}
+            onClick={() => onSelect(fish)}
             style={containerStyle}
             onAnimationEnd={() => onDone?.(fish.id)}
         >
