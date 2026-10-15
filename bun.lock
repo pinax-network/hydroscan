@@ -1,10 +1,11 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "token-aquarium",
       "dependencies": {
-        "@pinax/token-api": "^0.1.4",
+        "@pinax/token-api": "^0.2.4",
         "next": "16.0.7",
         "react": "19.2.1",
         "react-dom": "19.2.0",
@@ -178,7 +179,7 @@
 
     "@nolyfill/is-core-module": ["@nolyfill/is-core-module@1.0.39", "", {}, "sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA=="],
 
-    "@pinax/token-api": ["@pinax/token-api@0.1.4", "", { "dependencies": { "openapi-fetch": "^0.13.0" } }, "sha512-cFIS5fK0Q8uvZteOQAjXpK9HszDXlqhgTcrgRRCqK3SUcR6d8EZHmGAzij9O17yNN80ED9x/v/qXXGfuzEFMKw=="],
+    "@pinax/token-api": ["@pinax/token-api@0.2.11", "", { "dependencies": { "openapi-fetch": "^0.13.0" } }, "sha512-TwqsPZ2I2Byq5eFk2Ra5J/rX24ZVcuS3gV/pNKNgMj84lrimK3z9W7pZ0LsutI7xkeO77krY2RQs7Jm/MDREJw=="],
 
     "@rtsao/scc": ["@rtsao/scc@1.1.0", "", {}, "sha512-zt6OdqaDoOnJ1ZYsCYGt9YmWzDXl4vQdKTyJev62gFhRGKdx7mcT54V9KIjg+d2wi9EXsPvAPKe7i7WjfVWB8g=="],
 
