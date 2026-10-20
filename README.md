@@ -4,9 +4,11 @@ This is a demo project that showcases how to use [Pinax's TokenAPI](https://pina
 
 ## Running the project locally
 
+Requires [Bun](https://bun.com) 1.4.3 or later.
+
 ```bash
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
