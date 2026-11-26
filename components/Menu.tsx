@@ -4,7 +4,7 @@ import React from 'react';
 import Image from "next/image";
 import { useChain } from '@/contexts/ChainContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { CHAIN_META, NATIVE_TOKEN_BY_CHAIN, findTokenOption } from '@/lib/token-config';
+import { CHAIN_META, findTokenOption } from '@/lib/token-config';
 
 const cx = (...classes: string[]) => classes.filter(Boolean).join(" ");
 
@@ -18,7 +18,7 @@ export default function Menu({ onChangeDetails }: MenuProps) {
 
     const tokenList = tokens[selectedChain] || [];
     const selectedChainMeta = CHAIN_META[selectedChain];
-    const selectedToken = findTokenOption(selectedChain, contract) || NATIVE_TOKEN_BY_CHAIN[selectedChain];
+    const selectedToken = findTokenOption(selectedChain, contract);
 
     return (
         <div className="relative z-50 flex w-full justify-center px-3 pt-3 sm:px-4 sm:pt-4">
@@ -70,7 +70,7 @@ export default function Menu({ onChangeDetails }: MenuProps) {
                             </div>
                         </button>
                         <a
-                            href="https://thegraph.com/docs/en/token-api/quick-start/"
+                            href="https://app.pinax.network/docs/rpc"
                             target="_blank"
                             className="rounded bg-white px-3 py-2 text-sm font-medium text-black transition hover:bg-blue-500 hover:text-white"
                         >
@@ -107,7 +107,7 @@ export default function Menu({ onChangeDetails }: MenuProps) {
                                     const chain = e.target.value;
                                     setSelectedChain(chain);
                                     const first = tokens[chain]?.[0];
-                                    setContract(first?.contract || "");
+                                    if (first) setContract(first.contract);
                                 }}
                             >
                                 {chains.map(({ network, label }) => (
@@ -148,9 +148,6 @@ export default function Menu({ onChangeDetails }: MenuProps) {
                                 value={contract}
                                 onChange={(e) => setContract(e.target.value)}
                             >
-                                <option key="native" value="" className="text-black">
-                                    {NATIVE_TOKEN_BY_CHAIN[selectedChain]?.symbol || "Native Token"}
-                                </option>
                                 {tokenList.map((t) => (
                                     <option key={t.contract} value={t.contract} className="text-black">
                                         {t.symbol}
@@ -210,7 +207,7 @@ export default function Menu({ onChangeDetails }: MenuProps) {
                 {/* Go to Docs */}
                 <div className="hidden md:block">
                     <a
-                        href="https://thegraph.com/docs/en/token-api/quick-start/"
+                        href="https://app.pinax.network/docs/rpc"
                         target="_blank"
                         className="px-4 py-2 rounded font-medium text-sm transition bg-white text-black hover:bg-blue-500 hover:text-white"
                     >

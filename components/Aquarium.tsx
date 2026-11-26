@@ -12,7 +12,10 @@ import { Tier, TierRange, TokenOption, getTierForValue } from "@/lib/token-confi
 
 const cx = (...classes: string[]) => classes.filter(Boolean).join(" ");
 
-const POLL_INTERVAL = 10;
+// Base swim time in seconds: fish cross the tank in 1.5 to 3 times this.
+const SWIM_INTERVAL = 10;
+// Transfer IDs remembered to drop duplicates; reset past this size.
+const MAX_SEEN = 10_000;
 const MAX_INFO_BUBBLES = 5;
 
 interface ChainDisplayMeta {
@@ -46,17 +49,7 @@ const formatAmount = (value: string) => {
 
 const shortHash = (value: string) => `${value.slice(0, 10)}...${value.slice(-8)}`;
 
-const getExplorerUrl = (baseUrl: string, kind: "tx" | "address", value: string) => {
-    if (baseUrl.includes("solscan.io")) {
-        return `${baseUrl}/${kind}/${value}`;
-    }
-
-    if (baseUrl.includes("tronscan.org/#")) {
-        return `${baseUrl}/${kind}/${value}`;
-    }
-
-    return `${baseUrl}/${kind}/${value}`;
-};
+const getExplorerUrl = (baseUrl: string, kind: "tx" | "address", value: string) => `${baseUrl}/${kind}/${value}`;
 
 export default React.memo(function Aquarium({ transfers, tierRanges, resetKey, chainMeta, token }: Props) {
     const { isDarkMode } = useTheme();
@@ -84,6 +77,9 @@ export default React.memo(function Aquarium({ transfers, tierRanges, resetKey, c
         
         if (newTransfers.length === 0) return;
 
+        // Polls return transfers newer than the last block, so duplicates are rare
+        // (a reorg, or two replicas a block apart); a bounded set is enough.
+        if (seen.current.size > MAX_SEEN) seen.current = new Set();
         newTransfers.forEach(t => seen.current.add(t.id));
         
         const processedTransfers = newTransfers.map(transfer => {
@@ -173,8 +169,8 @@ export default React.memo(function Aquarium({ transfers, tierRanges, resetKey, c
                         <Fish key={`${t.id}-${t.randomFrameOffset}-${t.randomEntranceDelay}`}
                               fish={t}
                               tierRanges={tierRanges}
-                              maxSwimTime={POLL_INTERVAL*3}
-                              minSwimTime={POLL_INTERVAL*1.5}
+                              maxSwimTime={SWIM_INTERVAL*3}
+                              minSwimTime={SWIM_INTERVAL*1.5}
                               onDone={finishFish}
                               onSelect={handleSelect}
                               onTierHoverChange={setHoveredTier}
