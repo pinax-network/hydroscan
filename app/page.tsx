@@ -6,11 +6,13 @@ import Aquarium from "@/components/Aquarium";
 import Menu from "@/components/Menu";
 import { ChainProvider, useChain } from "@/contexts/ChainContext";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
-import { CHAIN_META, findTokenOption, getTierRanges, NATIVE_TOKEN_BY_CHAIN } from "@/lib/token-config";
+import { CHAIN_META, findTokenOption, getTierRanges, TOKENS_BY_CHAIN } from "@/lib/token-config";
 
 const cx = (...classes: string[]) => classes.filter(Boolean).join(" ");
 
-const POLL_INTERVAL = 10;
+// Each poll returns the transfers of the few blocks since the last one, so a
+// short interval makes the tank fill block by block.
+const POLL_INTERVAL = 3;
 
 function AquariumContent() {
     const { selectedChain, contract } = useChain();
@@ -29,14 +31,21 @@ function AquariumContent() {
     const [transfers, setTransfers] = useState<Transfer[]>([]);
     const [lastBlock, setLastBlock] = useState<number | null>(null);
     const tierRanges = getTierRanges(appliedSelection.selectedChain, appliedSelection.contract);
-    const selectedToken = findTokenOption(appliedSelection.selectedChain, appliedSelection.contract) || NATIVE_TOKEN_BY_CHAIN[appliedSelection.selectedChain];
+    const selectedToken = findTokenOption(appliedSelection.selectedChain, appliedSelection.contract) || TOKENS_BY_CHAIN[appliedSelection.selectedChain][0];
+    // The selection being shown: a poll that answers after the visitor switched token is dropped.
+    const shownSelection = useRef(appliedSelection);
+    const polling = useRef(false);
 
     const fetchTransfers = useCallback(async (
         selection = appliedSelection,
         block = lastBlock,
         replace = false
     ) => {
-        const result = await fetch('/api/transfers/', {
+        if (replace) shownSelection.current = selection;
+        else if (polling.current) return; // the previous poll is still running
+        polling.current = true;
+
+        const result = await fetch('/api/transfers', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -44,12 +53,13 @@ function AquariumContent() {
                 contract: selection.contract,
                 lastBlock: block,
             })
-        }).then(res => res.json()).catch(() => null);
-        if (!result || !result.transfers) return;
+        }).then(res => res.json()).catch(() => null).finally(() => {
+            polling.current = false;
+        });
+        if (!result || !result.transfers || shownSelection.current !== selection) return;
 
-        const incoming = result.transfers as Transfer[];
-
-        setTransfers(prev => replace ? incoming : [...prev, ...incoming]);
+        // Only the new batch: Aquarium keeps the fish already swimming.
+        setTransfers(result.transfers as Transfer[]);
         setLastBlock(result.lastBlock);
     }, [appliedSelection, lastBlock]);
 

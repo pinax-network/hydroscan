@@ -1,8 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { EVMChains } from "@pinax/token-api";
-import { CHAIN_META, CHAIN_OPTIONS, NATIVE_TOKEN_BY_CHAIN, TOKENS_BY_CHAIN, TokenOption } from "@/lib/token-config";
+import { CHAIN_META, CHAIN_OPTIONS, NETWORKS, TOKENS_BY_CHAIN, TokenOption } from "@/lib/token-config";
 
 interface ChainContextType {
     selectedChain: string;
@@ -15,7 +14,7 @@ interface ChainContextType {
 
 const ChainContext = createContext<ChainContextType | undefined>(undefined);
 
-const DEFAULT_CHAIN = EVMChains.Ethereum;
+const DEFAULT_CHAIN = NETWORKS.Ethereum;
 const DEFAULT_CONTRACT = TOKENS_BY_CHAIN[DEFAULT_CHAIN][0].contract;
 
 const getValidSelectionFromUrl = () => {
@@ -32,25 +31,15 @@ const getValidSelectionFromUrl = () => {
     const selectedChain = chainParam && chainParam in CHAIN_META ? chainParam : DEFAULT_CHAIN;
     const tokenList = TOKENS_BY_CHAIN[selectedChain] || [];
 
-    if (!tokenParam) {
-        return {
-            selectedChain,
-            contract: selectedChain === DEFAULT_CHAIN ? DEFAULT_CONTRACT : (tokenList[0]?.contract || ""),
-        };
-    }
-
-    if (tokenParam === "native") {
-        return {
-            selectedChain,
-            contract: "",
-        };
-    }
-
-    const matchingToken = tokenList.find((token) => token.contract.toLowerCase() === tokenParam.toLowerCase());
+    // Old links may name a native token (?token=native) or a removed chain; they
+    // fall back to the chain's first token, or to the default chain.
+    const matchingToken = tokenParam
+        ? tokenList.find((token) => token.contract.toLowerCase() === tokenParam.toLowerCase())
+        : undefined;
 
     return {
         selectedChain,
-        contract: matchingToken?.contract || tokenList[0]?.contract || NATIVE_TOKEN_BY_CHAIN[selectedChain]?.contract || "",
+        contract: matchingToken?.contract || tokenList[0].contract,
     };
 };
 
@@ -62,12 +51,7 @@ export function ChainProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         params.set("chain", selectedChain);
-
-        if (contract === "") {
-            params.set("token", "native");
-        } else {
-            params.set("token", contract);
-        }
+        params.set("token", contract);
 
         const nextQuery = params.toString();
         const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`;

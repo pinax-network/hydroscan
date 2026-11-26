@@ -1,111 +1,41 @@
-import {EVMChains, SVMChains, TokenAPI, TVMChains} from "@pinax/token-api";
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
+import { findTokenOption } from "@/lib/token-config";
+import { getTransfers } from "@/lib/transfer-feed";
 
-const MAX_PAGES = 20;
-const MAX_RESULTS = 50;
+export const dynamic = "force-dynamic";
 
+const NO_STORE = { "cache-control": "no-store" };
+
+// POST { selectedChain, contract, lastBlock } -> { transfers, lastBlock }
+//
+// The browser polls this every few seconds. The server reads Pinax RPC with
+// PINAX_API_KEY, which stays on the server: responses carry decoded transfers
+// only, never an RPC URL. Only the chains and tokens of lib/token-config.ts
+// are accepted, so a request can't make the server query anything else.
 export async function POST(request: Request) {
-    const data = await request.json();
-    const {selectedChain, contract, lastBlock} = data;
+    const body = await request.json().catch(() => null);
+    const { selectedChain, contract, lastBlock } = body ?? {};
 
-    const client = new TokenAPI({
-        apiToken: process.env.TOKEN_API_KEY || ""
-    });
-
-    const isEVM = Object.values(EVMChains).includes(selectedChain);
-    const isSVM = Object.values(SVMChains).includes(selectedChain);
-    const isTVM = Object.values(TVMChains).includes(selectedChain);
-    const isNative = contract === "";
-
-    const limit = 10;
-    const baseParams: any = {
-        network: selectedChain,
-        limit,
-        start_block: lastBlock === null ? undefined : lastBlock + 1,
-    };
-
-    if (isSVM && !isNative) {
-        baseParams.mint = contract;
+    const token = typeof selectedChain === "string" && typeof contract === "string"
+        ? findTokenOption(selectedChain, contract)
+        : null;
+    if (!token) {
+        return NextResponse.json({ error: "Unsupported chain or token" }, { status: 400, headers: NO_STORE });
     }
+    const since = Number.isSafeInteger(lastBlock) && lastBlock >= 0 ? (lastBlock as number) : null;
 
-    if (!isSVM && !isNative) {
-        baseParams.contract = contract;
+    // Read per request, never at module scope: the image is built without secrets.
+    const key = process.env.PINAX_API_KEY;
+    if (!key) {
+        console.error("[transfers] PINAX_API_KEY is not set");
+        return NextResponse.json({ error: "Transfers are not configured" }, { status: 503, headers: NO_STORE });
     }
 
     try {
-        if(!isEVM && !isSVM && !isTVM){
-            return NextResponse.json({ error: 'Unsupported chain' }, { status: 400 });
-        }
-
-        const allData: any[] = [];
-
-        for (let page = 1; page <= MAX_PAGES; page++) {
-            const params = { ...baseParams, page };
-            let res: any;
-            if (isNative && isEVM) {
-                res = await client.evm.tokens.getNativeTransfers(params);
-            } else if (isNative && isTVM) {
-                res = await client.tvm.tokens.getNativeTransfers(params);
-            } else if (isEVM) {
-                res = await client.evm.tokens.getTransfers(params);
-            } else if (isSVM) {
-                res = await client.svm.tokens.getTransfers(params);
-            } else {
-                res = await client.tvm.tokens.getTransfers(params);
-            }
-
-            const pageData = res?.data || [];
-            allData.push(...pageData);
-
-            if (pageData.length < limit) {
-                break;
-            }
-
-            if (allData.length >= MAX_RESULTS) {
-                break;
-            }
-        }
-
-        let filtered = isNative && isSVM ? allData.filter((item: {contract?: string, mint?: string}) => {
-            if(item.contract){
-                return item.contract.toLowerCase() === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
-            }
-            if(item.mint){
-                return item.mint === "So11111111111111111111111111111111111111111";
-            }
-
-            return false;
-        }) : allData;
-
-        filtered = filtered.filter((item) => {
-            const amount = item.value ?? item.amount;
-            return amount !== null && amount !== undefined && Number(amount) > 0;
-        });
-
-        const makeId = (item: any) => {
-            const txid = item.transaction_id || item.signature;
-            return `${item.from || item.source}-${item.to || item.destination}-${item.value || item.amount}-${item.block_num}-${txid}`;
-        }
-
-        const list = filtered.map((item: any) => ({
-            id: makeId(item),
-            txid: item.transaction_id || item.signature,
-            blockNumber: item.block_num,
-            from: item.from || item.source,
-            to: item.to || item.destination,
-            value: String(item.value ?? item.amount ?? 0),
-        }));
-
-        const maxBlockNumber = list.length
-            ? Math.max(...list.map(item => item.blockNumber)) 
-            : lastBlock;
-
-        return NextResponse.json({
-            transfers: list,
-            lastBlock: maxBlockNumber
-        })
+        return NextResponse.json(await getTransfers(selectedChain, token, since, key), { headers: NO_STORE });
     } catch (err) {
-        console.error("Error fetching transfers:", err);
-        return NextResponse.json({ error: 'Error fetching transfers' }, { status: 500 });
+        // Details stay in the server log; the message names the RPC method and code, never the URL.
+        console.error(`[transfers] ${selectedChain} ${token.symbol}: ${err instanceof Error ? err.message : err}`);
+        return NextResponse.json({ error: "Upstream RPC request failed" }, { status: 502, headers: NO_STORE });
     }
 }
