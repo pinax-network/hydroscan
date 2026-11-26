@@ -32,3 +32,12 @@ bun run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+## Deployment
+
+HydroScan runs on Kubernetes (ott-monitor1), from the manifests in
+[`k8s-pinax-ui`](https://github.com/pinax-network/k8s-pinax-ui) (`hydroscan/`). Every push to `main`
+builds `ghcr.io/pinax-network/hydroscan:<sha7>-<unix-ts>` ([`Dockerfile`](Dockerfile),
+[`container.yml`](.github/workflows/container.yml)). Flux proposes the new tag in that repo's
+`Deploy to prod` pull request, and merging it deploys. `PINAX_API_KEY` is the Kubernetes Secret
+`hydroscan-env`, never a build argument: the image builds without it.
